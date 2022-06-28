@@ -6,8 +6,11 @@ from csv import writer as csv_writer
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, WebDriverException
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 class TweetScraper:
@@ -19,8 +22,6 @@ class TweetScraper:
 
     Attributes
     ----------
-    chromedriver_path : str
-        Filepath to chromedriver executable.
     coin_name : str
         Coin name. E.g. "Bitcoin", "Ethereum", "Dogecoin", etc.
     coin_abbrv : str
@@ -58,7 +59,6 @@ class TweetScraper:
     """
 
     def __init__(self,
-                 chromedriver_path: str,
                  date_start: str,
                  date_end: str,
                  coin_name: str,
@@ -71,8 +71,6 @@ class TweetScraper:
         """
         Parameters
         ----------
-        chromedriver_path : str
-            Filepath to chromedriver executable.
         coin_name : str
             Coin name. E.g. "Bitcoin", "Ethereum", "Dogecoin", etc.
         coin_abbrv : str
@@ -105,7 +103,6 @@ class TweetScraper:
             raise ValueError(
                 "Date format must be '%Y-%m-%d'"
             )
-        self.chromedriver_path = chromedriver_path
         self.coin_name = coin_name
         self.coin_abbrv = coin_abbrv
         self.min_faves = min_faves
@@ -205,7 +202,7 @@ class TweetScraper:
             Either list of string datetimes OR list of tweet texts dependent on
             the ``text`` param.
         """
-        web_elems = driver.find_elements_by_css_selector(css_selector)
+        web_elems = driver.find_elements(By.CSS_SELECTOR, css_selector)
         if not text:
             data = [time.get_attribute("datetime") for time in web_elems]
         else:
@@ -310,7 +307,7 @@ class TweetScraper:
         options = Options()
         options.headless = False
         driver = webdriver.Chrome(
-            self.chromedriver_path,
+            service=Service(ChromeDriverManager().install()),
             options=options
         )
 
@@ -332,7 +329,7 @@ class TweetScraper:
                     WebDriverWait(
                         driver,
                         timeout=delay
-                    ).until(lambda d: d.find_element_by_tag_name("time"))
+                    ).until(lambda d: d.find_element(By.TAG_NAME, "time"))
                     sleep(7)
 
                     data = self.scrape_full_page(driver)
@@ -364,11 +361,6 @@ class TweetScraper:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "chromedriver_path",
-        type=str,
-        help="Filepath to the ChromeDriver executable."
-    )
     parser.add_argument(
         "coin_name",
         type=str,
@@ -435,7 +427,6 @@ if __name__ == "__main__":
         )
 
     CL_PARAMS = {
-        "chromedriver_path": args.chromedriver_path,
         "date_start": args.date_start,
         "date_end": args.date_end,
         "coin_name": args.coin_name,
@@ -448,6 +439,3 @@ if __name__ == "__main__":
 
     scraper = TweetScraper(**CL_PARAMS)
     scraper.run_scraper()
-
-
-
